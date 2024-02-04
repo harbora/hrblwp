@@ -1,4 +1,8 @@
 [workspace]
 resolver = "2"
 
-members = ["proto"]
+members = ["conn", "core", "proto"]
+
+[workspace.dependencies]
+hrblwp-core = { version = "0.1", path = "./core" }
+hrblwp-proto = { version = "0.1", path = "./proto" }

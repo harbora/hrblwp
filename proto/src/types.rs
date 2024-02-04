@@ -63,6 +63,7 @@ macro_rules! impl_with_unknown {
     };
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum FrameType {
     Connection,
     Security,
@@ -72,6 +73,7 @@ pub enum FrameType {
 
 impl_no_unknown!(FrameType, 6..8, Connection => 0, Security => 1, Transmission => 2, Application => 3);
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Version {
     V1,
     Unknown(u8),
@@ -79,6 +81,7 @@ pub enum Version {
 
 impl_with_unknown!(Version, 3..6, 2..=16, V1 => 1);
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum SecurityScheme {
     HandshakeStart,
     HandshakeEnd,
@@ -88,6 +91,7 @@ pub enum SecurityScheme {
 
 impl_no_unknown!(SecurityScheme, 6..8, HandshakeStart => 0, HandshakeEnd => 1, DataTrans => 2, DataRetrans => 3);
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum DHAlgorithm {
     Ed25519,
     Curve25519,
@@ -98,6 +102,7 @@ pub enum DHAlgorithm {
 
 impl_with_unknown!(DHAlgorithm, 2..6, 4..=16, Ed25519 => 0, Curve25519 => 1, Secp256k1 => 2, RSA2048 => 3);
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum SpongeAlgorithm {
     Keccak256,
     Aes256cbcSha256,
@@ -106,6 +111,7 @@ pub enum SpongeAlgorithm {
 
 impl_with_unknown!(SpongeAlgorithm, 0..3, 3 | 4, Keccak256 => 0, Aes256cbcSha256 => 1);
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum TransmissionScheme {
     Con,
     Non,
