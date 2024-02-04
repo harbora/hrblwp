@@ -70,14 +70,14 @@ pub enum FrameType {
     Application,
 }
 
-impl_no_unknown!(FrameType, 4..6, Connection => 0, Security => 1, Transmission => 2, Application => 3);
+impl_no_unknown!(FrameType, 6..8, Connection => 0, Security => 1, Transmission => 2, Application => 3);
 
 pub enum Version {
     V1,
     Unknown(u8),
 }
 
-impl_with_unknown!(Version, 0..3, 2..=16, V1 => 1);
+impl_with_unknown!(Version, 3..6, 2..=16, V1 => 1);
 
 pub enum SecurityScheme {
     HandshakeStart,
@@ -105,3 +105,16 @@ pub enum SpongeAlgorithm {
 }
 
 impl_with_unknown!(SpongeAlgorithm, 0..3, 3 | 4, Keccak256 => 0, Aes256cbcSha256 => 1);
+
+pub enum TransmissionScheme {
+    Con,
+    Non,
+    Ack,
+    Rst,
+    Stm,
+    Req,
+    Res,
+    Unknown(u8),
+}
+
+impl_with_unknown!(TransmissionScheme, 5..8, 7, Con => 0, Non => 1, Ack => 2, Rst => 3, Stm => 4, Req => 5, Res => 6);
