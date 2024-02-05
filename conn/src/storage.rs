@@ -1,6 +1,8 @@
 use core::net::SocketAddr;
 
-use crate::{ConnectionId, PeerId, Result};
+use hrblwp_core::{ConnectionId, PeerId};
+
+use crate::Result;
 
 pub trait Backend {
     fn set_peer(&mut self, peer: PeerId, addr: SocketAddr) -> Result<()>;

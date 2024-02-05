@@ -1,12 +1,8 @@
 [package]
-name = "hrblwp-conn"
+name = "hrblwp-security"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hrblwp-core.workspace = true
-hrblwp-proto.workspace = true
-hrblwp-security.workspace = true
-log = "0.4.20"

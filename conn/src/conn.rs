@@ -40,6 +40,7 @@ where
             if ty == FrameType::Connection {
                 // let
             } else {
+                self.layer.receive(&mut cb);
             }
         }
 
