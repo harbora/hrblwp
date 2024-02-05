@@ -1,14 +1,30 @@
+use bit_field::BitField;
+
 use crate::{utils::FromU8, DHAlgorithm, Error, Result, SecurityScheme, SpongeAlgorithm};
 
 pub struct SecurityFrameParser<'a> {
+    transmit: bool,
     buff: &'a [u8],
 }
 
 impl<'a> SecurityFrameParser<'a> {
     pub fn uncheck_new(buff: &'a [u8]) -> Result<Self> {
+        let b = buff.first().ok_or(Error::WrongLength(1))?;
+
+        let transmit = b.get_bit(0);
+
         Ok(Self {
             buff: buff.get(1..).ok_or(Error::WrongLength(1))?,
+            transmit,
         })
+    }
+
+    pub fn transmit(&self) -> bool {
+        self.transmit
+    }
+
+    pub fn index(&self) -> Result<&[u8]> {
+        self.buff.get(0..8).ok_or(Error::WrongLength(8))
     }
 
     pub fn scheme(&self) -> Result<SecurityScheme> {

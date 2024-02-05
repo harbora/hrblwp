@@ -1,4 +1,5 @@
 use bit_field::BitField;
+use hrblwp_core::{ConnectionId, PeerId};
 
 use crate::{Error, Result};
 
@@ -19,23 +20,28 @@ impl<'a> ConnFrameParser<'a> {
         })
     }
 
-    pub fn cid(&self) -> Result<&[u8]> {
-        self.buff.get(0..32).ok_or(Error::WrongLength(33))
+    pub fn connection_id(&self) -> Result<ConnectionId> {
+        Ok(ConnectionId::from_bytes(self.buff)?)
     }
 
-    pub fn sa(&self) -> Result<Option<&[u8]>> {
+    pub fn addrs(&self) -> Result<Option<(PeerId, PeerId)>> {
         if self.short {
             Ok(None)
+        } else if self.buff.len() < 72 {
+            Err(Error::WrongLength(72))
         } else {
-            Ok(Some(self.buff.get(32..52).ok_or(Error::WrongLength(53))?))
+            Ok(Some((
+                PeerId::from_bytes(&self.buff[32..52])?,
+                PeerId::from_bytes(&self.buff[52..72])?,
+            )))
         }
     }
 
-    pub fn da(&self) -> Result<Option<&[u8]>> {
+    pub fn length(&self) -> usize {
         if self.short {
-            Ok(None)
+            33
         } else {
-            Ok(Some(self.buff.get(52..72).ok_or(Error::WrongLength(73))?))
+            73
         }
     }
 }
