@@ -1,19 +1,22 @@
 use core::net::SocketAddr;
 
-use hrblwp_core::{ConnectionId, CursorBuffer, PeerId};
+use hrblwp_core::{Buffer, ConnectionId, PeerId};
 use hrblwp_proto::{ConnFrameParser, FrameParser, FrameType, SecurityFrameParser, Version};
-use hrblwp_security::SecurityLayer;
 
-use crate::{ConnectionStorage, DroppedError, DroppedResult, Error, Result, SecurityStorage};
+use crate::{
+    Config, ConnectionStorage, DroppedError, DroppedResult, Result, SecurityLayer, SecurityStorage,
+};
 
 pub const MTU_BUFFER: usize = 1450;
 
 pub struct ConnectionLayer<B, S> {
     backend: B,
-    pub buff: [u8; MTU_BUFFER],
-    pub length: usize,
-    pub layer: SecurityLayer,
     security_storage: S,
+
+    buff: Buffer<MTU_BUFFER>,
+    conn_buff: usize,
+
+    cfg: Config,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -41,27 +44,28 @@ where
     B: ConnectionStorage,
     S: SecurityStorage,
 {
-    pub fn receive(&mut self, from: SocketAddr, to: SocketAddr) -> Result<()> {
-        let buff = self
-            .buff
-            .get(..self.length)
-            .ok_or(Error::WrongLength(self.length))?;
+    pub fn receive(&mut self, length: usize, from: SocketAddr, to: SocketAddr) -> Result<()> {
+        self.buff.init(length);
 
-        let mut cb = CursorBuffer::new(buff);
+        let mut security = SecurityLayer::new(&self.cfg.security);
 
-        let fp = dropped!(self.check_version(&cb));
+        // handle connection frame
+        let fp = dropped!(self.check_version());
 
-        let res = self.handle_connection(&fp, &mut cb, &from, &to);
+        let res = self.handle_connection(&fp, &from, &to);
         let (st, cid, sa, da) = dropped!(res);
 
-        let res = self.handle_security(&mut cb, &st, &cid);
+        // handle security
+        let fp = dropped!(self.check_version());
+
+        let res = self.handle_security(fp, &st, &cid, &mut security);
         dropped!(res);
 
         Ok(())
     }
 
-    fn check_version(&self, cb: &CursorBuffer) -> DroppedResult<FrameType> {
-        let fp = FrameParser::new(cb.buffer())?;
+    fn check_version(&self) -> DroppedResult<FrameType> {
+        let fp = FrameParser::new(self.buff.buffer())?;
 
         let version = fp.version();
         if version != Version::V1 {
@@ -72,29 +76,29 @@ where
     }
 
     fn handle_connection(
-        &self,
+        &mut self,
         fp: &FrameType,
-        cb: &mut CursorBuffer,
         from: &SocketAddr,
         to: &SocketAddr,
     ) -> DroppedResult<(ConnFrameStatus, ConnectionId, PeerId, PeerId)> {
         if fp == &FrameType::Connection {
-            let cp = ConnFrameParser::uncheck_new(cb.buffer())?;
+            let cp = ConnFrameParser::uncheck_new(self.buff.buffer())?;
 
             let cid = cp.connection_id()?;
 
-            let (sa, da, st) = if let Some(a) = cp.addrs()? {
-                (a.0, a.1, ConnFrameStatus::Handshake)
+            let (sa, da, st, step) = if let Some(a) = cp.addrs()? {
+                (a.0, a.1, ConnFrameStatus::Handshake, 73)
             } else {
                 let a = self
                     .backend
                     .get_peer_by_conn(&cid)?
                     .ok_or(DroppedError::Dropped("No peer id found, drop it"))?;
 
-                (a.0, a.1, ConnFrameStatus::PathMigrate)
+                (a.0, a.1, ConnFrameStatus::PathMigrate, 33)
             };
 
-            cb.advance(cp.length())?;
+            self.conn_buff = step;
+            self.buff.advance(step)?;
 
             Ok((st, cid, sa, da))
         } else {
@@ -118,25 +122,39 @@ where
     }
 
     fn handle_security(
-        &self,
-        cb: &mut CursorBuffer,
+        &mut self,
+        fp: FrameType,
         status: &ConnFrameStatus,
         cid: &ConnectionId,
+        sl: &mut SecurityLayer,
     ) -> DroppedResult<()> {
-        let sp = SecurityFrameParser::uncheck_new(cb.buffer())?;
+        if fp != FrameType::Security {
+            return Err(DroppedError::Dropped("Must be security frame"));
+        }
+
+        let sp = SecurityFrameParser::uncheck_new(self.buff.buffer())?;
 
         if (status == &ConnFrameStatus::Transmit || status == &ConnFrameStatus::PathMigrate)
             && sp.transmit()
         {
             // Get transmit key with cid
-            let key = self
+            let (sponge, key) = self
                 .security_storage
                 .get_key(cid)?
                 .ok_or(DroppedError::Dropped("No key found"))?;
 
+            let index = sp.index()?;
+
             // Compute packet key.
+            if self.conn_buff != 0 {
+                sl.ad(&self.buff.raw_buffer()[..self.conn_buff + 1], &sponge);
+            }
+            sl.key(key, &sponge);
+            sl.key(index, &sponge);
+
             // Decrypt all data.
-            // modify new frame
+            sl.recv_enc(self.buff.buffer_mut(), &sponge);
+        } else if status == &ConnFrameStatus::Handshake && !sp.transmit() {
         } else {
             return Err(DroppedError::Dropped(
                 "Security Frame not match Connection Frame",

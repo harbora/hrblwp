@@ -4,7 +4,6 @@ pub enum Error {
     WrongLength(usize),
     HrbCoreError(hrblwp_core::Error),
     ProtoError(hrblwp_proto::Error),
-    SecurityError(hrblwp_security::Error),
     BackendError(u32),
 }
 
@@ -35,6 +34,5 @@ impl From<Error> for DroppedError {
 
 impl_dropped_error_from!(hrblwp_core::Error, HrbCoreError);
 impl_dropped_error_from!(hrblwp_proto::Error, ProtoError);
-impl_dropped_error_from!(hrblwp_security::Error, SecurityError);
 
 pub type DroppedResult<T> = core::result::Result<T, DroppedError>;

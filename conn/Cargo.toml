@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+digest = { version = "0.10.7", default-features = false }
 hrblwp-core.workspace = true
 hrblwp-proto.workspace = true
-hrblwp-security.workspace = true
-log = "0.4.20"
+log = { version = "0.4.20", default-features = false }
+strobe-rs = "0.8.1"
