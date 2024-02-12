@@ -1,7 +1,7 @@
 use hrblwp_proto::SpongeAlgorithm;
 use strobe_rs::{SecParam, Strobe};
 
-use crate::SecurityConfig;
+use crate::{Result, SecurityConfig};
 
 pub struct SecurityLayer {
     pub keccak256: bool,
@@ -45,5 +45,10 @@ impl SecurityLayer {
 
         self.strobe.meta_recv_enc(&mut l, false);
         self.strobe.recv_enc(data, false);
+    }
+
+    pub fn recv_mac(&mut self, data: &mut [u8]) -> Result<()> {
+        self.strobe.recv_mac(data)?;
+        Ok(())
     }
 }

@@ -1,4 +1,5 @@
 use bit_field::BitField;
+use hrblwp_core::HMAC;
 
 use crate::{utils::FromU8, DHAlgorithm, Error, Result, SecurityScheme, SpongeAlgorithm};
 
@@ -45,7 +46,19 @@ impl<'a> SecurityFrameParser<'a> {
         Ok(SpongeAlgorithm::from_u8(*byte))
     }
 
+    pub fn hmac(&self) -> Result<HMAC> {
+        if self.transmit {
+            let bytes = self.buff.get(8..40).ok_or(Error::WrongLength(40))?;
+
+            Ok(HMAC::from_bytes(bytes)?)
+        } else {
+            let bytes = self.buff.get(1..33).ok_or(Error::WrongLength(33))?;
+
+            Ok(HMAC::from_bytes(bytes)?)
+        }
+    }
+
     pub fn payload(&self) -> Result<&[u8]> {
-        self.buff.get(1..).ok_or(Error::WrongLength(3))
+        self.buff.get(33..).ok_or(Error::WrongLength(3))
     }
 }

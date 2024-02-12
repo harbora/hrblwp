@@ -61,6 +61,8 @@ where
         let res = self.handle_security(fp, &st, &cid, &mut security);
         dropped!(res);
 
+        // store peer info.
+
         Ok(())
     }
 
@@ -149,12 +151,21 @@ where
             if self.conn_buff != 0 {
                 sl.ad(&self.buff.raw_buffer()[..self.conn_buff + 1], &sponge);
             }
+
+            // Set key into strobe.
             sl.key(key, &sponge);
             sl.key(index, &sponge);
 
+            let mut hmac = sp.hmac()?;
+
             // Decrypt all data.
             sl.recv_enc(self.buff.buffer_mut(), &sponge);
+
+            // Auth code
+            sl.recv_mac(hmac.as_mut())?;
         } else if status == &ConnFrameStatus::Handshake && !sp.transmit() {
+            let security_scheme = sp.scheme()?;
+            let dh_algo = sp.dh_algorithm()?;
         } else {
             return Err(DroppedError::Dropped(
                 "Security Frame not match Connection Frame",

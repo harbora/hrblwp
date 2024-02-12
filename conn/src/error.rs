@@ -5,6 +5,7 @@ pub enum Error {
     HrbCoreError(hrblwp_core::Error),
     ProtoError(hrblwp_proto::Error),
     BackendError(u32),
+    AuthError(strobe_rs::AuthError),
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -34,5 +35,6 @@ impl From<Error> for DroppedError {
 
 impl_dropped_error_from!(hrblwp_core::Error, HrbCoreError);
 impl_dropped_error_from!(hrblwp_proto::Error, ProtoError);
+impl_dropped_error_from!(strobe_rs::AuthError, AuthError);
 
 pub type DroppedResult<T> = core::result::Result<T, DroppedError>;

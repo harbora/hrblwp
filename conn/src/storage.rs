@@ -23,4 +23,6 @@ pub trait SecurityStorage {
     fn set_key(&mut self, cid: ConnectionId, sponge: SpongeAlgorithm, key: &[u8]) -> Result<()>;
 
     fn get_key(&self, cid: &ConnectionId) -> Result<Option<(SpongeAlgorithm, &[u8])>>;
+
+    // fn get_ephemeral_key(&self, peer: &PeerId) -> Result<Option<>>
 }
