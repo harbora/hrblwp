@@ -49,3 +49,6 @@ impl_bytes!(ConnectionId, 32);
 
 pub struct HMAC(pub [u8; 32]);
 impl_bytes!(HMAC, 32);
+
+pub struct SharedKey(pub(crate) [u8; 32]);
+impl_bytes!(SharedKey, 32);
